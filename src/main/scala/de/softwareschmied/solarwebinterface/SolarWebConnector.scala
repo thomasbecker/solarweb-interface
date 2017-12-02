@@ -8,6 +8,7 @@ import akka.http.scaladsl.model.{HttpRequest, _}
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Sink, Source}
+import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
@@ -45,6 +46,7 @@ class SolarWebConnector extends JsonSupport {
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
 
+  val logger = Logger[SolarWebConnector]
   val httpClient = Http().outgoingConnection(host = "192.168.178.20", port = 80)
 
   def getInverterRealtimeData(): InverterData = {
@@ -53,7 +55,7 @@ class SolarWebConnector extends JsonSupport {
     val start = System.currentTimeMillis()
     val result = Await.result(flowGet, 30 seconds)
     val end = System.currentTimeMillis()
-    println(s"Result in ${end - start} millis: $result")
+    logger.debug(s"Result in ${end - start} millis: $result")
     result.body.data
   }
 
@@ -63,7 +65,7 @@ class SolarWebConnector extends JsonSupport {
     val start = System.currentTimeMillis()
     val result = Await.result(flowGet, 30 seconds)
     val end = System.currentTimeMillis()
-    println(s"Result in ${end - start} millis: $result")
+    logger.debug(s"Result in ${end - start} millis: $result")
     result.body.data
   }
 
@@ -73,7 +75,7 @@ class SolarWebConnector extends JsonSupport {
     val start = System.currentTimeMillis()
     val result = Await.result(flowGet, 30 seconds)
     val end = System.currentTimeMillis()
-    println(s"Result in ${end - start} millis: $result")
+    logger.debug(s"Result in ${end - start} millis: $result")
     val site = result.body.data.site
     site.timestamp = Some(Instant.now.getEpochSecond)
     site
