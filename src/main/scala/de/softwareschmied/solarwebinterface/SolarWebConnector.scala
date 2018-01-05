@@ -11,7 +11,7 @@ import akka.stream.scaladsl.{Sink, Source}
 import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, Future, TimeoutException}
 import scala.concurrent.duration._
 
 /**
@@ -31,7 +31,7 @@ case class MeterResponse(body: MeterBody)
 
 case class MeterBody(data: MeterData)
 
-case class MeterData(powerRealSum: BigDecimal, powerRealPhase1: BigDecimal, powerRealPhase2: BigDecimal, powerRealPhase3: BigDecimal, timestamp: Long = Instant.now.getEpochSecond)
+case class MeterData(powerRealSum: BigDecimal, powerRealPhase1: BigDecimal, powerRealPhase2: BigDecimal, powerRealPhase3: BigDecimal, timestamp: Option[Long])
 
 case class PowerFlowResponse(body: PowerFlowBody)
 
@@ -40,7 +40,7 @@ case class PowerFlowBody(data: PowerFlowData)
 case class PowerFlowData(site: PowerFlowSite)
 
 case class PowerFlowSite(powerGrid: BigDecimal, powerLoad: BigDecimal, powerPv: Option[BigDecimal], selfConsumption: Option[BigDecimal],
-                         autonomy: Option[BigDecimal], var timestamp: Option[Long])
+                         autonomy: Option[BigDecimal], timestamp: Option[Long])
 
 class SolarWebConnector extends JsonSupport {
   implicit val system = ActorSystem()
@@ -52,33 +52,33 @@ class SolarWebConnector extends JsonSupport {
   def getInverterRealtimeData(): InverterData = {
     val inverterRealtimeUrlPath = s"""/solar_api/v1/GetInverterRealtimeData.cgi?scope=System"""
     val flowGet: Future[InverterResponse] = sendRequest[InverterResponse](inverterRealtimeUrlPath)
-    val start = System.currentTimeMillis()
-    val result = Await.result(flowGet, 30 seconds)
-    val end = System.currentTimeMillis()
-    logger.debug(s"Result in ${end - start} millis: $result")
-    result.body.data
+    awaitResult(flowGet, { () => InverterResponse(InverterBody(InverterData(DayEnergy("n/a", Values(0))))) }).body.data
   }
 
   def getMeterRealtimeData(): MeterData = {
     val meterRealtimeUrlPath = s"""/solar_api/v1/GetMeterRealtimeData.cgi?scope=Device&deviceid=0"""
     val flowGet: Future[MeterResponse] = sendRequest[MeterResponse](meterRealtimeUrlPath)
-    val start = System.currentTimeMillis()
-    val result = Await.result(flowGet, 30 seconds)
-    val end = System.currentTimeMillis()
-    logger.debug(s"Result in ${end - start} millis: $result")
-    result.body.data
+    awaitResult(flowGet, { () => null }).body.data
   }
 
   def getPowerFlowRealtimeData(): PowerFlowSite = {
-    val meterRealtimeUrlPath = s"""/solar_api/v1/GetPowerFlowRealtimeData.fcgi"""
-    val flowGet: Future[PowerFlowResponse] = sendRequest[PowerFlowResponse](meterRealtimeUrlPath)
-    val start = System.currentTimeMillis()
-    val result = Await.result(flowGet, 30 seconds)
-    val end = System.currentTimeMillis()
-    logger.debug(s"Result in ${end - start} millis: $result")
-    val site = result.body.data.site
-    site.timestamp = Some(Instant.now.getEpochSecond)
-    site
+    val powerFlowRealtimeDataUrlPath = s"""/solar_api/v1/GetPowerFlowRealtimeData.fcgi"""
+    val flowGet: Future[PowerFlowResponse] = sendRequest[PowerFlowResponse](powerFlowRealtimeDataUrlPath)
+    awaitResult(flowGet, { () => PowerFlowResponse(PowerFlowBody(PowerFlowData(PowerFlowSite(BigDecimal(0), BigDecimal(0), None, None, None, None)))) }).body.data.site
+  }
+
+  private def awaitResult[T](futureToWaitFor: Future[T], factory: () => T): T = {
+    var result: T = null.asInstanceOf[T]
+    try {
+      val start = System.currentTimeMillis()
+      result = Await.result(futureToWaitFor, 30 seconds)
+      val end = System.currentTimeMillis()
+      logger.debug(s"Result in ${end - start} millis: $result")
+    } catch {
+      case e: TimeoutException => logger.info("timeout waiting for result"); result = factory.apply()
+      case e: Exception => logger.info("Exception: " + e.getMessage); logger.debug("Exception: ", e); result = factory.apply()
+    }
+    result
   }
 
   private def sendRequest[T](inverterRealtimeURLPath: String)(implicit m: Unmarshaller[ResponseEntity, T]): Future[T] = {
@@ -89,10 +89,11 @@ class SolarWebConnector extends JsonSupport {
           uri = Uri(inverterRealtimeURLPath))
       )
         .via(httpClient)
-        .mapAsync(1)(response => Unmarshal(response.entity).to[T])
+        .mapAsync(1)(response => {
+          logger.info(response.toString())
+          Unmarshal(response.entity).to[T]
+        })
         .runWith(Sink.head)
     flowGet
   }
-
-
 }
