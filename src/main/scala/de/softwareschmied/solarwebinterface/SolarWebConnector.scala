@@ -31,7 +31,7 @@ case class MeterResponse(body: MeterBody)
 
 case class MeterBody(data: MeterData)
 
-case class MeterData(powerRealSum: BigDecimal, powerRealPhase1: BigDecimal, powerRealPhase2: BigDecimal, powerRealPhase3: BigDecimal, timestamp: Option[Long])
+case class MeterData(powerRealSum: Double, powerRealPhase1: Double, powerRealPhase2: Double, powerRealPhase3: Double, timestamp: Option[Long])
 
 case class PowerFlowResponse(body: PowerFlowBody)
 
@@ -39,8 +39,8 @@ case class PowerFlowBody(data: PowerFlowData)
 
 case class PowerFlowData(site: PowerFlowSite)
 
-case class PowerFlowSite(powerGrid: BigDecimal, powerLoad: BigDecimal, powerPv: Option[BigDecimal], selfConsumption: Option[BigDecimal],
-                         autonomy: Option[BigDecimal], timestamp: Option[Long])
+case class PowerFlowSite(powerGrid: Double, powerLoad: Double, powerPv: Option[Double], selfConsumption: Option[Double],
+                         autonomy: Option[Double], timestamp: Option[Long])
 
 class SolarWebConnector extends JsonSupport {
   implicit val system = ActorSystem()
@@ -64,7 +64,7 @@ class SolarWebConnector extends JsonSupport {
   def getPowerFlowRealtimeData(): PowerFlowSite = {
     val powerFlowRealtimeDataUrlPath = s"""/solar_api/v1/GetPowerFlowRealtimeData.fcgi"""
     val flowGet: Future[PowerFlowResponse] = sendRequest[PowerFlowResponse](powerFlowRealtimeDataUrlPath)
-    awaitResult(flowGet, { () => PowerFlowResponse(PowerFlowBody(PowerFlowData(PowerFlowSite(BigDecimal(0), BigDecimal(0), None, None, None, None)))) }).body.data.site
+    awaitResult(flowGet, { () => PowerFlowResponse(PowerFlowBody(PowerFlowData(PowerFlowSite(0, 0, None, None, None, None)))) }).body.data.site
   }
 
   private def awaitResult[T](futureToWaitFor: Future[T], factory: () => T): T = {
