@@ -20,20 +20,20 @@ class SolarWebConnectorSpec extends Specification {
     "return some real time meter data when " >> {
       val meterData = solarWebConnector.getMeterRealtimeData()
       logger.info(s"$meterData")
-      meterData.powerRealSum must not be(BigDecimal(0))
-      meterData.powerRealPhase1 must not be(BigDecimal(0))
-      meterData.powerRealPhase2 must not be(BigDecimal(0))
-      meterData.powerRealPhase3 must not be(BigDecimal(0))
+      meterData.powerRealSum must_!= 0.0
+      meterData.powerRealPhase1 must_!= 0.0
+      meterData.powerRealPhase2 must_!= 0.0
+      meterData.powerRealPhase3 must_!= 0.0
     }
 
     "return some power flow real time data when" >> {
       val powerFlowSite = solarWebConnector.getPowerFlowRealtimeData()
       logger.info(s"$powerFlowSite")
-      powerFlowSite.powerPv must not be(BigDecimal(0))
-      powerFlowSite.powerGrid must not be(BigDecimal(0))
-      powerFlowSite.powerLoad must not be(BigDecimal(0))
-      powerFlowSite.selfConsumption must not be(BigDecimal(0))
-      powerFlowSite.autonomy must not be(BigDecimal(0))
+      powerFlowSite.powerPv must_!= 0.0
+      powerFlowSite.powerGrid must_!= 0.0
+      powerFlowSite.powerLoad must_!= 0.0
+      powerFlowSite.selfConsumption must_!= 0.0
+      powerFlowSite.autonomy must_!= 0.0
     }
 
   }
