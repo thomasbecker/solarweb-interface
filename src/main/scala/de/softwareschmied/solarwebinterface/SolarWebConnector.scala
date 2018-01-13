@@ -39,8 +39,8 @@ case class PowerFlowBody(data: PowerFlowData)
 
 case class PowerFlowData(site: PowerFlowSite)
 
-case class PowerFlowSite(powerGrid: Double, powerLoad: Double, powerPv: Option[Double], selfConsumption: Option[Double],
-                         autonomy: Option[Double], timestamp: Option[Long])
+case class PowerFlowSite(powerGrid: Double, powerLoad: Double, powerPv: Option[Double], selfConsumption: Option[Double], autonomy: Option[Double],
+                         timestamp: Option[Long])
 
 class SolarWebConnector extends JsonSupport {
   implicit val system = ActorSystem()
@@ -76,7 +76,7 @@ class SolarWebConnector extends JsonSupport {
       logger.debug(s"Result in ${end - start} millis: $result")
     } catch {
       case e: TimeoutException => logger.info("timeout waiting for result"); result = factory.apply()
-      case e: Exception => logger.info("Exception: " + e.getMessage); logger.debug("Exception: ", e); result = factory.apply()
+      case e: Exception => logger.info("Exception: " + e.getMessage); logger.info("Exception: ", e); result = factory.apply()
     }
     result
   }
