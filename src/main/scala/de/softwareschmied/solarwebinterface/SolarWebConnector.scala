@@ -47,7 +47,7 @@ class SolarWebConnector extends JsonSupport {
   implicit val materializer = ActorMaterializer()
 
   val logger = Logger[SolarWebConnector]
-  val httpClient = Http().outgoingConnection(host = "192.168.178.20", port = 80)
+  val httpClient = Http().outgoingConnection(host = "192.168.188.26", port = 80)
 
   def getInverterRealtimeData(): InverterData = {
     val inverterRealtimeUrlPath = s"""/solar_api/v1/GetInverterRealtimeData.cgi?scope=System"""
